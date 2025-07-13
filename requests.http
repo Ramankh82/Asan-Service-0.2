@@ -1,0 +1,146 @@
+# ==================================
+#   بخش ۱: ثبت‌نام کاربران
+# ==================================
+
+### تست ۱.۱: ثبت‌نام یک کاربر جدید (مشتری)
+# @name registerCustomer
+POST http://127.0.0.1:8000/api/auth/register/
+Content-Type: application/json
+
+{
+    "phone_number": "09121002030",
+    "password": "customerPassword123",
+    "first_name": "مریم",
+    "last_name": "احمدی",
+    "role": "customer"
+}
+
+###
+### تست ۱.۲: ثبت‌نام یک کاربر جدید (تکنسین)
+# @name registerTechnician
+POST http://127.0.0.1:8000/api/auth/register/
+Content-Type: application/json
+
+{
+    "phone_number": "09351002030",
+    "password": "technicianPassword123",
+    "first_name": "رضا",
+    "last_name": "صادقی",
+    "role": "technician"
+}
+
+###
+
+# ==================================
+#   بخش ۲: ورود و دریافت توکن
+# ==================================
+
+### تست ۲.۱: ورود با کاربر مشتری
+# @name customerLogin
+POST http://127.0.0.1:8000/api/auth/login/
+Content-Type: application/json
+
+{
+    "phone_number": "09121002030",
+    "password": "customerPassword123"
+}
+
+###
+### تست ۲.۲: ورود با کاربر تکنسین
+# @name technicianLogin
+POST http://127.0.0.1:8000/api/auth/login/
+Content-Type: application/json
+
+{
+    "phone_number": "09351002030",
+    "password": "technicianPassword123"
+}
+
+###
+
+# ==================================
+#   بخش ۳: سناریوی مشتری
+# ==================================
+
+### تست ۳.۱: مشاهده پروفایل مشتری (نیاز به توکن دارد)
+# این درخواست از توکن گرفته شده از درخواست customerLogin استفاده می‌کند
+GET http://127.0.0.1:8000/api/auth/profile/
+Authorization: Bearer {{customerLogin.response.body.access}}
+
+### تست ۳.۲: ثبت یک درخواست سرویس جدید توسط مشتری
+# @name createServiceRequest
+POST http://127.0.0.1:8000/api/requests/
+Authorization: Bearer {{customerLogin.response.body.access}}
+Content-Type: application/json
+
+{
+    "title": "سرویس ماهانه آسانسور - {{$timestamp}}",
+    "description": "نیاز به سرویس ماهانه و چکاپ کامل قطعات داریم.",
+    "address": "کرج، مهرشهر، بلوار ارم، ساختمان آفتاب، واحد ۱۰"
+}
+###
+### تست ۳.۳: مشاهده لیست درخواست‌های مشتری
+# باید فقط درخواستی را نشان دهد که در مرحله قبل ساخته شد
+GET http://127.0.0.1:8000/api/requests/
+Authorization: Bearer {{customerLogin.response.body.access}}
+
+###
+### تست ۳.۴: مشاهده جزئیات یک درخواست خاص
+# از شناسه (id) درخواستی که در تست ۳.۲ ساخته شد، استفاده می‌کند
+GET http://127.0.0.1:8000/api/requests/{{createServiceRequest.response.body.id}}/
+Authorization: Bearer {{customerLogin.response.body.access}}
+
+
+###
+
+# ==================================
+#   بخش ۴: سناریوی تکنسین
+# ==================================
+
+### تست ۴.۱: مشاهده پروفایل تکنسین
+GET http://127.0.0.1:8000/api/auth/profile/
+Authorization: Bearer {{technicianLogin.response.body.access}}
+
+###
+### تست ۴.۲: مشاهده لیست درخواست‌های موجود برای تکنسین
+# تکنسین باید بتواند درخواستی که توسط مشتری ساخته شده را ببیند
+GET http://127.0.0.1:8000/api/requests/
+Authorization: Bearer {{technicianLogin.response.body.access}}
+
+###
+# ==================================
+#   بخش ۵: سناریوی پذیرش درخواست
+# ==================================
+
+### تست ۵.۱: تکنسین یک درخواست باز را می‌پذیرد
+# نکته: ما از توکن تکنسین (technicianLogin) و شناسه درخواستی که
+# توسط مشتری ساخته شده (createServiceRequest) استفاده می‌کنیم.
+
+POST http://127.0.0.1:8000/api/requests/{{createServiceRequest.response.body.id}}/accept/
+Authorization: Bearer {{technicianLogin.response.body.access}}
+
+###
+# ==================================
+#   بخش ۶: به‌روزرسانی وضعیت درخواست
+# ==================================
+
+### تست ۶.۱: تکنسین وضعیت درخواست را به "در حال انجام" تغییر می‌دهد
+# ما از توکن تکنسین و شناسه درخواستی که پذیرفته شده، استفاده می‌کنیم
+
+POST http://127.0.0.1:8000/api/requests/{{createServiceRequest.response.body.id}}/update_status/
+Authorization: Bearer {{technicianLogin.response.body.access}}
+Content-Type: application/json
+
+{
+    "status": "in_progress"
+}
+
+###
+### تست ۶.۲: تکنسین وضعیت همان درخواست را به "تکمیل شده" تغییر می‌دهد
+POST http://127.0.0.1:8000/api/requests/{{createServiceRequest.response.body.id}}/update_status/
+Authorization: Bearer {{technicianLogin.response.body.access}}
+Content-Type: application/json
+
+{
+    "status": "completed"
+}

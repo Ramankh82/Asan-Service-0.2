@@ -1,0 +1,14 @@
+# Virtualenv
+venv/
+
+# Database
+db.sqlite3
+
+# Django stuff
+*.log
+*.pot
+*.pyc
+__pycache__/
+
+# VS Code
+.vscode/
